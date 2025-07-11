@@ -8,12 +8,12 @@ The hint is the string that determines which cipher decoding module to use in or
 The ciphers implemented were hand-written using information from dcode.fr and Wikipedia.
 
 Ciphers used:
-- Baudot
+- Baudot Code
 - Guitar Chords
 - LeetCode
 - Morbit Cipher
 - Latin Gibberish
-- Tritemius
+- Tritemius Cipher
 - Wabun Code (Japanese Morse Code)
 - Shankar Speech Defect
 - Chuck Norris Unary Code
