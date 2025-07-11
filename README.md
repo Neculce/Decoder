@@ -1,9 +1,9 @@
 # Decoder
 This python script is a solution for the Decode Runner challenge found in the PwnMe CTF 2025 Qualifiers. 
 
-The script connects to the challenge and receives a hint and a ciphertext. 
+The script connects to the challenge from which it receives a hint and a ciphertext. 
 
-The hint is the string that determines which decoder to use to return the correct plaintext.
+The hint is the string that determines which cipher decoding module to use in order to return the correct plaintext.
 
 The ciphers implemented were hand-written using information from dcode.fr and Wikipedia.
 
