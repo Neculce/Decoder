@@ -1,66 +1,81 @@
 from pwn import *
 from textwrap import wrap
 import binascii
-import re 
+import re
 
-host = 'https://decoderunner-e5ec5618a9ab24da.deploy.phreaks.fr/'
-port = 443 
+host = 'decoderunner-e5ec5618a9ab24da.deploy.phreaks.fr'
+port = 443
 conn = remote(host, port, ssl=True)
+for i in range(0,48):
+	conn.recvline()
+#print("received 48 lines!")
 
-x=1
+def newLine():
+    output = conn.recvline()
+    #print("non-decoded input: ",output)
+    output = output.decode('utf-8')[8:-1] #delete initial word
+    #print("input: ",output)
+    return output
 
-conn.recvuntil(b'Good Luck!')
-conn.recvline()
-conn.recvline()
-conn.recvline()
-
+def send_response(response):
+    #print("output: ",response.lower())
+    conn.sendline(response.lower().encode('utf-8'))
 
 def cipherident(hint):  #function to identify cipher based on hints
-    match hint: 
-        case b"hint: He can't imagine finding himself in CTF 150 years later..." : 
-            baudot()
+    match hint:
+        case b"hint: He can't imagine finding himself in CTF 150 years later...\n" : 
+            print("baudot found!")
+            baudot(newLine())
 
-        case b'hint: Hendrix would have had it...' :
-            guitar()
+        case b'hint: Hendrix would have had it... \n' :
+            print("guitar found!")
+            guitar(newLine())
 
-        case b'hint: 1337 ...' :
-            leet()
+        case b'hint: 1337 ...\n' :
+            print("leetcode found!")
+            leet(newLine())
 
-        case b'hint: A code based on pairs of dots and dashes. Think of a mix of Morse code and numbers... (AZERTYUIO)':
-            morbit()
+        case b'hint: A code based on pairs of dots and dashes. Think of a mix of Morse code and numbers... (AZERTYUIO)\n':
+            print("morbit found!")
+            morbit(newLine())
 
-        case b'hint: what is this charabia ???':
-            latingib()
+        case b'hint: what is this charabia ???\n':
+            print("latingibber found!")
+            latingib(newLine())
 
-        case b'hint: Born in 1462 in Germany...':
-            tritemius()
+        case b'hint: Born in 1462 in Germany...\n':
+            print("tritemius found!")
+            tritemius(newLine())
 
-        case b'hint: It looks like Morse code, but ...':
-            wabun()
+        case b'hint: It looks like Morse code, but ... \n':
+            print("wabun found!")
+            wabun(newLine())
 
-        case b'hint: Did you realy see slumdog millionaire ?':
-            shankar()
+        case b'hint: Did you realy see slumdog millionaire ?\n':
+            print("shankar found!")
+            shankar(newLine())
 
-        case b'hint: He can snap his toes, and has already counted to infinity twice ...':
-            chucknorris()
+        case b'hint: He can snap his toes, and has already counted to infinity twice ...\n':
+            print("CHUCK NORRIS?!?!?!?!?")
+            chucknorris(newLine())
 
-        case _ : 
-            milsign(hint)
+        case b'Wrong answer sorry :) \n':
+            print("We failed... What happened?")
+            exit()
 
-for x in range (100):
+        case b'Too long sorry :)\n':
+            print("Response took too long...")
+            exit()
+            
+        case _ :
+            print("must be initials...")
+            initials(hint.decode('utf-8')[:-2])
 
-    hint = conn.recvline()
-    cipherident(hint)
 
-
-def baudot():
-    output = conn.recvline()
-    output.replace('cipher: ','') #delete initial word 
-    
-    encoded = output
-    encoded = encoded.split(" ")
+def baudot(output):
+    encoded = output.split(" ")
+    #print(output)
     output =""
-
     state = 0 #state of the translator, 0 is alpha dict, 1 is numeric dict. Default is 0 since baudot starts with chars
         
     alpha = [ "null", " ", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "A", "S", "D", "F", "G", "H", "J", "K", "L", "Z", "X", "C", "V", "B", "N", "M", "CaRetCR", "LineFeed"]
@@ -78,15 +93,10 @@ def baudot():
         else :   
             output = output + numeric[value.index(code)]
 
+    send_response(output)
 
-    conn.sendline(output.lower())
-
-def guitar():
-
-    output = conn.recvline()
-    output.replace('cipher: ','') #delete initial word 
-    output.split(" ")
-
+def guitar(output):
+    x = output.split(" ")
     # Mapping of standard tuning (E A D G B E) to note names
     NOTE_MAP = {
     'E': ['E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B', 'C', 'C#', 'D', 'D#'],
@@ -113,12 +123,11 @@ def guitar():
     # print and call function
     def out_song(chords):
         decoded_word = "".join(decode_chord(chord) for chord in chords)
-        conn.sendline("".join(decoded_word).lower())
+        #print("".join(decoded_word).lower())
+        send_response("".join(decoded_word).lower())
+    out_song(x)
 
-def leet():
-    output = conn.recvline()
-    output.replace('cipher: ','') #delete initial word 
-    
+def leet(output):
     leet_dict = {
     'A': ['4', '@', '/\\', '^', 'Д'],
     'B': ['8', '13', '|3', 'ß', 'P>', 'I3'],
@@ -162,14 +171,10 @@ def leet():
 
     def leet_to_text(leet_str): 
         """Convert leetspeak to normal text."""
-        conn.sendline(leet_regex.sub(lambda match: reverse_leet_dict[match.group(0)], leet_str).lower())
-    
+        send_response(leet_regex.sub(lambda match: reverse_leet_dict[match.group(0)], leet_str).lower())
     leet_to_text(output)
 
-
-def morbit():
-    message = conn.recvline()
-    message.replace('cipher: ','') #delete initial word 
+def morbit(message):
     key_dict = [ "0", "..", "./", "/-", "//", "-.", "--", "/.", "-/", ".-"]
 
     morse_to_text_dict = {
@@ -190,20 +195,15 @@ def morbit():
     output = ""
     for i in morse_result:
         output = output + morse_to_text_dict[i]
-    conn.sendline(output.lower())
+    send_response(output.lower())
 
 
-def latingib():
-    message = conn.recvline()
-    message.replace('cipher: ','') #delete initial word 
-
-    conn.sendling(message[:-2][::-1].lower())
+def latingib(message):
+    send_response(message[:-2][::-1].lower())
 
 
-def tritemius():
-    message = conn.recvline()
-    message.replace('cipher: ','').upper() #delete initial word 
-
+def tritemius(message):
+    message = message.upper()
     alphabet = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
     output=""
     shift = 3
@@ -211,41 +211,30 @@ def tritemius():
     for i in message:
         output = output + alphabet[(alphabet.index(i) - shift)%26] 
         shift = shift + 1
-    conn.sendline(output.lower())
+    send_response(output.lower())
 
-def wabun():
-    output = conn.recvline()
-    output.replace('cipher: ','') #delete initial word 
-
+def wabun(output):
     alphabet = ["i","ro","ha","ni","ho","he","to","chi","ri","nu","ru","wo","wa","ka","yo","ta","re","so","tsu","ne","na","ra","mu","u","wi","no","o","ku","ya","ma","ke","fu","ko","e","te","a","sa","ki","yu","me","mi","shi","we","hi","mo","se","su","n"]
     morse = [".-",".-.-","-...","-.-.","-..",".","..-..","..-.","--.","....","-.--.",".---","-.-",".-..","--","-.","---","---.",".--.","--.-",".-.","...","-","..-",".-..-","..--",".-...","...-",".--","-..-","-.--","--..","----","-.---",".-.--","--.--","-.-.-","-.-..","-..--","-...-","..-.-","--.-.",".--..","--..-","-..-.",".---.","---.-",".-.-."]
-
-    message = message.split (" ")
-
+    message = output.split (" ")
+    #print("debug wabun: ",message)
     for i in message:
         if i in morse:
             message[message.index(i)] = alphabet[morse.index(i)]
-    conn.sendline("".join(message))
+        else:
+            message[message.index(i)] = i
+    send_response("".join(message).lower())
 
-
-def shankar():
-
+def shankar(message):
     output = ""
     alphabet = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
     substitute = ["D","F","G","H","J","K","L","M","N","U","O","P","Q","R","S","T","I","V","W","X","Y","Z","B","A","C","E"]
-
-    message = conn.recvline()
-    message.replace('cipher: ','') #delete initial word 
-
     for i in range(0, len(message)):
         output = output + substitute[alphabet.index(message[i])]
-
-    conn.sendline(output.lower())
+    send_response(output.lower())
     
 
-def chucknorris():
-    encoded = conn.recvline()
-    encoded.replace('cipher: ','') #delete initial word 
+def chucknorris(encoded):
     encoded = encoded.split (" ")
 
     binary = ''
@@ -267,15 +256,23 @@ def chucknorris():
     for i in range(0,len(output)):
         output[i] = '0' + output[i]
         response = response + chr(int(output[i],2))
+    send_response(response)
 
-    conn.sendline(response.lower())
 
-
-def milsign(hint):
+def initials(hint):
+    response = ""
+    hint = hint[8:] #delete initial word
     x = hint.split (" ")
+    #print(x)
     for each in x :
-        response = response + x[0]
-    conn.sendline(response.lower())
+        response = response + each[:-len(each)+1]
+    send_response(response.lower())
 
 
+def main():
+	for x in range (0,100):
+		cipherident(conn.recvline())
+		#print(x,hint.decode('utf-8'))
+	conn.interactive()
 
+main()
